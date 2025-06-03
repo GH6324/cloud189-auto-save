@@ -353,6 +353,8 @@ async function showFileListModal(taskId) {
                     </tr>
                 `;
             });
+        }else{
+            message.error(data.error)
         }
     } catch (error) {
         message.warning('获取文件列表失败：' + error.message);

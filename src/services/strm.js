@@ -109,13 +109,7 @@ class StrmService {
 
                     // 生成STRM文件内容
                     let content;
-                    if (task.enableSystemProxy) {
-                        const baseUrl = ConfigService.getConfigValue('system.baseUrl');
-                        const code = CryptoUtils.encryptIds(task.id, file.id);
-                        content = `${baseUrl}/proxy/${code}`;
-                    } else {
-                        content = this._joinUrl(this._joinUrl(task.account.cloudStrmPrefix, taskName), fileName);
-                    }
+                    content = this._joinUrl(this._joinUrl(task.account.cloudStrmPrefix, taskName), fileName);
                     await fs.writeFile(strmPath, content, 'utf8');
                     // 设置文件权限
                     if (process.getuid && process.getuid() === 0) {

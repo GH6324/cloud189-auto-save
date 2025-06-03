@@ -12,19 +12,17 @@ const path = require('path');
 const { StrmService } = require('./strm');
 const { EventService } = require('./eventService');
 const { TaskEventHandler } = require('./taskEventHandler');
-const { ProxyFileService } = require('./ProxyFileService');
 const AIService = require('./ai');
 const harmonizedFilter = require('../utils/BloomFilter');
 const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
 
 class TaskService {
-    constructor(taskRepo, accountRepo, proxyFileRepo) {
+    constructor(taskRepo, accountRepo) {
         this.taskRepo = taskRepo;
         this.accountRepo = accountRepo;
         this.messageUtil = new MessageUtil();
         this.eventService = EventService.getInstance();
-        this.proxyFileService = new ProxyFileService(proxyFileRepo);
         // 如果还没有taskComplete事件的监听器，则添加
         if (!this.eventService.hasListeners('taskComplete')) {
             const taskEventHandler = new TaskEventHandler(this.messageUtil);
@@ -290,7 +288,6 @@ class TaskService {
             await this.refreshAlistCache(task, true)
         }
         if (task.enableSystemProxy) {
-            await this.proxyFileService.deleteFiles(task.id)
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
@@ -599,10 +596,12 @@ class TaskService {
             {
                 status: 'pending',
                 nextRetryTime: null,
+                enableSystemProxy: IsNull(),
                 ...(ignore ? {} : { enableCron: false })
             },
             {
                 status: 'processing',
+                enableSystemProxy: IsNull(),
                 ...(ignore ? {} : { enableCron: false })
             }
         ];
@@ -1026,7 +1025,8 @@ class TaskService {
             where: {
                 status: 'pending',
                 nextRetryTime: LessThan(now),
-                retryCount: LessThan(ConfigService.getConfigValue('task.maxRetries'))
+                retryCount: LessThan(ConfigService.getConfigValue('task.maxRetries')),
+                enableSystemProxy: IsNull()
             }
         });
     }
@@ -1369,7 +1369,6 @@ class TaskService {
         // 判断是否启用了系统代理
         if (task.enableSystemProxy) {
             // 代理文件
-            await this.proxyFileService.batchDeleteFilesById(files.map(file => file.id));
         }else{
             // 删除网盘文件
             const cloud189 = Cloud189Service.getInstance(task.account);

@@ -1,12 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const { AppDataSource } = require('./database');
-const { Account, Task, CommonFolder, ProxyFile } = require('./entities');
+const { Account, Task, CommonFolder } = require('./entities');
 const { TaskService } = require('./services/task');
 const { Cloud189Service } = require('./services/cloud189');
 const { MessageUtil } = require('./services/message');
 const { CacheManager } = require('./services/CacheManager')
-const { ProxyFileService } = require('./services/ProxyFileService');
 const ConfigService = require('./services/ConfigService');
 const packageJson = require('../package.json');
 const session = require('express-session');
@@ -18,7 +17,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
 const { Like, Not, IsNull, In } = require('typeorm');
-const CryptoUtils = require('./utils/cryptoUtils');
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
 const { StrmService } = require('./services/strm');
@@ -95,7 +93,7 @@ app.post('/api/auth/login', (req, res) => {
         req.session.username = username;
         res.json({ success: true });
     } else {
-        res.status(401).json({ success: false, error: '用户名或密码错误' });
+        res.json({ success: false, error: '用户名或密码错误' });
     }
 });
 app.use(express.static(path.join(__dirname,'public')));
@@ -104,7 +102,6 @@ app.use((req, res, next) => {
     if (req.path === '/' || req.path === '/login' 
         || req.path === '/api/auth/login' 
         || req.path === '/api/auth/login' 
-        || req.path.startsWith('/proxy/') 
         || req.path === '/emby/notify'
         || req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico)$/)) {
         return next();
@@ -134,11 +131,9 @@ AppDataSource.initialize().then(async () => {
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
     const commonFolderRepo = AppDataSource.getRepository(CommonFolder);
-    const proxyFileRepo = AppDataSource.getRepository(ProxyFile);
-    const taskService = new TaskService(taskRepo, accountRepo, proxyFileRepo);
+    const taskService = new TaskService(taskRepo, accountRepo);
     const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
-    const proxyFileService = new ProxyFileService(proxyFileRepo);
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
@@ -279,12 +274,13 @@ AppDataSource.initialize().then(async () => {
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
-        let whereClause = {}; // 用于构建最终的 where 条件
+        let whereClause = { }; // 用于构建最终的 where 条件
 
         // 基础条件（AND）
         if (status && status !== 'all') {
             whereClause.status = status;
         }
+        whereClause.enableSystemProxy = IsNull();
 
         // 添加搜索过滤
         if (search) {
@@ -668,14 +664,6 @@ AppDataSource.initialize().then(async () => {
         }
     })
     
-    // 获取直链
-    app.get('/proxy/:code', async(req, res) => {
-        try {
-            throw new Error('系统代理模式已移除');
-        } catch (error) {
-            res.status(500).send('Error');
-        }
-    })
     // emby 回调
     app.post('/emby/notify', async (req, res) => {
         try {

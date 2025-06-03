@@ -209,39 +209,4 @@ export class CommonFolder {
 }
 
 
-// 系统代理文件表
-@Entity()
-export class ProxyFile {
-    @Column('text', { primary: true })
-    id!: string;  // 文件ID作为主键
-
-    @Column('integer')
-    taskId!: number;
-
-    @ManyToOne(() => Task)
-    @JoinColumn({ name: 'taskId' })
-    task!: Task;
-
-    @Column('text')
-    name!: string;
-
-    @Column('text')
-    md5!: string;
-
-    @Column('bigint')
-    size!: number;
-
-    @CreateDateColumn({
-        transformer: {
-            from: (date: Date) => date && new Date(date.getTime() + (8 * 60 * 60 * 1000)),
-            to: (date: Date) => date
-        }
-    })
-    createdAt!: Date;
-
-    @Column('text', { nullable: true })
-    lastOpTime!: Date;
-
-}
-
-export default { Account, Task, CommonFolder, ProxyFile };
+export default { Account, Task, CommonFolder };
