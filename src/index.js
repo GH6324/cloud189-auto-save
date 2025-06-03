@@ -16,7 +16,7 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
-const { Like, Not, IsNull, In } = require('typeorm');
+const { Like, Not, IsNull, In, Or } = require('typeorm');
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
 const { StrmService } = require('./services/strm');
@@ -280,7 +280,7 @@ AppDataSource.initialize().then(async () => {
         if (status && status !== 'all') {
             whereClause.status = status;
         }
-        whereClause.enableSystemProxy = IsNull();
+        whereClause.enableSystemProxy = Or(IsNull(), false);
 
         // 添加搜索过滤
         if (search) {
