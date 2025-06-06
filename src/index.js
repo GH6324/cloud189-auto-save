@@ -580,6 +580,7 @@ AppDataSource.initialize().then(async () => {
         ConfigService.setConfig(settings)
         await botManager.handleBotStatus(
             settings.telegram?.bot?.botToken,
+            settings.telegram?.bot?.chatId,
             settings.telegram?.bot?.enable
         );
         // 修改配置, 重新实例化消息推送
